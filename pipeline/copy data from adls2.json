@@ -82,7 +82,14 @@
 										"type": "SnowflakeImportCopyCommand"
 									}
 								},
-								"enableStaging": false
+								"enableStaging": true,
+								"stagingSettings": {
+									"linkedServiceName": {
+										"referenceName": "storeazureblob",
+										"type": "LinkedServiceReference"
+									},
+									"path": ""
+								}
 							},
 							"inputs": [
 								{
