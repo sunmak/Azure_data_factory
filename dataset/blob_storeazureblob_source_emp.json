@@ -1,10 +1,6 @@
 {
 	"name": "blob_storeazureblob_source_emp",
 	"properties": {
-		"linkedServiceName": {
-			"referenceName": "storeazureblob",
-			"type": "LinkedServiceReference"
-		},
 		"annotations": [],
 		"type": "DelimitedText",
 		"typeProperties": {
