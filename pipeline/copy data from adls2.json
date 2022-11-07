@@ -24,6 +24,7 @@
 					],
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
 						"modifiedDatetimeStart": "2022-11-06T00:00:00.079Z",
 						"modifiedDatetimeEnd": "2022-11-06T00:00:00.187Z",
 						"enablePartitionDiscovery": false
@@ -85,10 +86,10 @@
 								"enableStaging": true,
 								"stagingSettings": {
 									"linkedServiceName": {
-										"referenceName": "storeazureblob",
+										"referenceName": "Adflogs_SASUri",
 										"type": "LinkedServiceReference"
 									},
-									"path": "source"
+									"path": "staging"
 								}
 							},
 							"inputs": [
