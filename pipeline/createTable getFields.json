@@ -1,0 +1,424 @@
+{
+	"name": "createTable getFields",
+	"properties": {
+		"description": "Get fields of a given Salesforce Object and store them in Snowflake META.LOAD.T_SALESFORCE_FIELDS",
+		"activities": [
+			{
+				"name": "get object description",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "if token provided",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://projuventute.lightning.force.com/services/data/v53.0/sobjects/@{pipeline().parameters.object}/describe/",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"headers": {
+						"Authorization": {
+							"value": "Bearer @{variables('token')}",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "delete from FIELDS",
+				"type": "Script",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "Snowflake",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "DELETE FROM META.LOAD.T_SALESFORCE_FIELDS\nWHERE OBJECT = '@{pipeline().parameters.object}'",
+								"type": "Expression"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "exclude selected fields",
+				"description": "Excluding fields contained in the REST API, but not delivered through BULK API",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "get object description",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('get object description').output.fields",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@not(equals(item().type, 'address'))",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "for each field",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "exclude selected fields",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('exclude selected fields').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "append value",
+							"type": "AppendVariable",
+							"dependsOn": [
+								{
+									"activity": "set ordinal_position",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "values",
+								"value": {
+									"value": "('@{pipeline().parameters.object}', '@{replace(item().name, '''', '\\''')}', '@{replace(item().label, '''', '\\''')}', '@{item().type}', @{item().length}, @{item().scale}, @{item().precision}, @{item().custom}, '@{item().externalId}', @{int(variables('ordinal_position'))})",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "set ordinal_position",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "ordinal_position",
+								"value": {
+									"value": "@string(length(variables('values')))",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "insert into FIELDS",
+				"description": "META.LOAD.T_SALESFORCE_FIELDS",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "delete from FIELDS",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "for each field",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "Snowflake",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "INSERT INTO META.LOAD.T_SALESFORCE_FIELDS (OBJECT, NAME, LABEL, TYPE, LENGTH, SCALE, PRECISION, CUSTOM, EXTERNALID, ORDINAL_POSITION)\nVALUES @{join(variables('values'), ', ')}",
+								"type": "Expression"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "if token provided",
+				"type": "IfCondition",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@not(equals(trim(pipeline().parameters.token), ''))",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "set token new",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "get access token",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "token",
+								"value": {
+									"value": "@activity('get access token').output.access_token",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "get access token",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "get securitytoken from vault",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "get clientsecret from vault",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "get clientid from vault",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "get password from vault",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "set empty Body",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.00:10:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": true
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": {
+									"value": "https://login.salesforce.com/services/oauth2/token?grant_type=password&client_id=@{activity('get clientid from vault').output.value}&client_secret=@{activity('get clientsecret from vault').output.value}&username=serviceuser_salesforce@projuventute.ch&password=@{activity('get password from vault').output.value}@{activity('get securitytoken from vault').output.value}",
+									"type": "Expression"
+								},
+								"method": "POST",
+								"body": {
+									"value": "@variables('emptyBody')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "get password from vault",
+							"type": "WebActivity",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.00:10:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": true,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": "https://pjdavault.vault.azure.net/secrets/salesforce-password/123b6a3adf88491a862f2d192f8c72ec?api-version=7.0",
+								"method": "GET",
+								"body": "tenant=(tenantid)&client_id=(clientid)&client_secret=(clientsecret)&grant_type=client_credentials&scope=https://graph.microsoft.com/.default",
+								"authentication": {
+									"type": "MSI",
+									"resource": "https://vault.azure.net"
+								}
+							}
+						},
+						{
+							"name": "get clientid from vault",
+							"type": "WebActivity",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.00:10:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": true,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": "https://pjdavault.vault.azure.net/secrets/salesforce-clientid/6f25864abc174e0eb1a4194e5ad40547?api-version=7.0",
+								"method": "GET",
+								"body": "tenant=(tenantid)&client_id=(clientid)&client_secret=(clientsecret)&grant_type=client_credentials&scope=https://graph.microsoft.com/.default",
+								"authentication": {
+									"type": "MSI",
+									"resource": "https://vault.azure.net"
+								}
+							}
+						},
+						{
+							"name": "get clientsecret from vault",
+							"type": "WebActivity",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.00:10:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": true,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": "https://pjdavault.vault.azure.net/secrets/salesforce-clientsecret/d2697300de804f68b512160e13f1d21c?api-version=7.0",
+								"method": "GET",
+								"body": "tenant=(tenantid)&client_id=(clientid)&client_secret=(clientsecret)&grant_type=client_credentials&scope=https://graph.microsoft.com/.default",
+								"authentication": {
+									"type": "MSI",
+									"resource": "https://vault.azure.net"
+								}
+							}
+						},
+						{
+							"name": "get securitytoken from vault",
+							"type": "WebActivity",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.00:10:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": true,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": "https://pjdavault.vault.azure.net/secrets/salesforce-securitytoken/a1adef1a49354a0c984e0147474fdf92?api-version=7.0",
+								"method": "GET",
+								"body": "tenant=(tenantid)&client_id=(clientid)&client_secret=(clientsecret)&grant_type=client_credentials&scope=https://graph.microsoft.com/.default",
+								"authentication": {
+									"type": "MSI",
+									"resource": "https://vault.azure.net"
+								}
+							}
+						},
+						{
+							"name": "set empty Body",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "emptyBody",
+								"value": "{}"
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "set token provided",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "token",
+								"value": {
+									"value": "@pipeline().parameters.token",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"object": {
+				"type": "string",
+				"defaultValue": "User"
+			},
+			"token": {
+				"type": "string",
+				"defaultValue": " "
+			}
+		},
+		"variables": {
+			"fieldName": {
+				"type": "String"
+			},
+			"emptyBody": {
+				"type": "String",
+				"defaultValue": "{}"
+			},
+			"values": {
+				"type": "Array"
+			},
+			"ordinal_position": {
+				"type": "String"
+			},
+			"token": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "salesforce/createTable"
+		},
+		"annotations": []
+	}
+}
