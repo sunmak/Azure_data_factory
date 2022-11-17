@@ -24,7 +24,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"url": {
-						"value": "https://projuventute.lightning.force.com/services/data/v53.0/sobjects/@{pipeline().parameters.object}/describe/",
+						"value": "https://azilen.lightning.force.com/services/data/v53.0/sobjects/@{pipeline().parameters.object}/describe/",
 						"type": "Expression"
 					},
 					"method": "GET",
