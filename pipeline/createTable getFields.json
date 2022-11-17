@@ -6,14 +6,7 @@
 			{
 				"name": "get object description",
 				"type": "WebActivity",
-				"dependsOn": [
-					{
-						"activity": "if token provided",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"policy": {
 					"timeout": "0.00:10:00",
 					"retry": 1,
@@ -33,6 +26,10 @@
 							"value": "Bearer @{variables('token')}",
 							"type": "Expression"
 						}
+					},
+					"authentication": {
+						"type": "Basic",
+						"username": "sunil.makwana-60rc@force.com"
 					}
 				}
 			},
@@ -180,208 +177,6 @@
 							"text": {
 								"value": "INSERT INTO META.LOAD.T_SALESFORCE_FIELDS (OBJECT, NAME, LABEL, TYPE, LENGTH, SCALE, PRECISION, CUSTOM, EXTERNALID, ORDINAL_POSITION)\nVALUES @{join(variables('values'), ', ')}",
 								"type": "Expression"
-							}
-						}
-					]
-				}
-			},
-			{
-				"name": "if token provided",
-				"type": "IfCondition",
-				"dependsOn": [],
-				"userProperties": [],
-				"typeProperties": {
-					"expression": {
-						"value": "@not(equals(trim(pipeline().parameters.token), ''))",
-						"type": "Expression"
-					},
-					"ifFalseActivities": [
-						{
-							"name": "set token new",
-							"type": "SetVariable",
-							"dependsOn": [
-								{
-									"activity": "get access token",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "token",
-								"value": {
-									"value": "@activity('get access token').output.access_token",
-									"type": "Expression"
-								}
-							}
-						},
-						{
-							"name": "get access token",
-							"type": "WebActivity",
-							"dependsOn": [
-								{
-									"activity": "get securitytoken from vault",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								},
-								{
-									"activity": "get clientsecret from vault",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								},
-								{
-									"activity": "get clientid from vault",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								},
-								{
-									"activity": "get password from vault",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								},
-								{
-									"activity": "set empty Body",
-									"dependencyConditions": [
-										"Succeeded"
-									]
-								}
-							],
-							"policy": {
-								"timeout": "0.00:10:00",
-								"retry": 1,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": true
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"url": {
-									"value": "https://login.salesforce.com/services/oauth2/token?grant_type=password&client_id=@{activity('get clientid from vault').output.value}&client_secret=@{activity('get clientsecret from vault').output.value}&username=serviceuser_salesforce@projuventute.ch&password=@{activity('get password from vault').output.value}@{activity('get securitytoken from vault').output.value}",
-									"type": "Expression"
-								},
-								"method": "POST",
-								"body": {
-									"value": "@variables('emptyBody')",
-									"type": "Expression"
-								}
-							}
-						},
-						{
-							"name": "get password from vault",
-							"type": "WebActivity",
-							"dependsOn": [],
-							"policy": {
-								"timeout": "0.00:10:00",
-								"retry": 1,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": true,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"url": "https://pjdavault.vault.azure.net/secrets/salesforce-password/123b6a3adf88491a862f2d192f8c72ec?api-version=7.0",
-								"method": "GET",
-								"body": "tenant=(tenantid)&client_id=(clientid)&client_secret=(clientsecret)&grant_type=client_credentials&scope=https://graph.microsoft.com/.default",
-								"authentication": {
-									"type": "MSI",
-									"resource": "https://vault.azure.net"
-								}
-							}
-						},
-						{
-							"name": "get clientid from vault",
-							"type": "WebActivity",
-							"dependsOn": [],
-							"policy": {
-								"timeout": "0.00:10:00",
-								"retry": 1,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": true,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"url": "https://pjdavault.vault.azure.net/secrets/salesforce-clientid/6f25864abc174e0eb1a4194e5ad40547?api-version=7.0",
-								"method": "GET",
-								"body": "tenant=(tenantid)&client_id=(clientid)&client_secret=(clientsecret)&grant_type=client_credentials&scope=https://graph.microsoft.com/.default",
-								"authentication": {
-									"type": "MSI",
-									"resource": "https://vault.azure.net"
-								}
-							}
-						},
-						{
-							"name": "get clientsecret from vault",
-							"type": "WebActivity",
-							"dependsOn": [],
-							"policy": {
-								"timeout": "0.00:10:00",
-								"retry": 1,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": true,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"url": "https://pjdavault.vault.azure.net/secrets/salesforce-clientsecret/d2697300de804f68b512160e13f1d21c?api-version=7.0",
-								"method": "GET",
-								"body": "tenant=(tenantid)&client_id=(clientid)&client_secret=(clientsecret)&grant_type=client_credentials&scope=https://graph.microsoft.com/.default",
-								"authentication": {
-									"type": "MSI",
-									"resource": "https://vault.azure.net"
-								}
-							}
-						},
-						{
-							"name": "get securitytoken from vault",
-							"type": "WebActivity",
-							"dependsOn": [],
-							"policy": {
-								"timeout": "0.00:10:00",
-								"retry": 1,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": true,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"url": "https://pjdavault.vault.azure.net/secrets/salesforce-securitytoken/a1adef1a49354a0c984e0147474fdf92?api-version=7.0",
-								"method": "GET",
-								"body": "tenant=(tenantid)&client_id=(clientid)&client_secret=(clientsecret)&grant_type=client_credentials&scope=https://graph.microsoft.com/.default",
-								"authentication": {
-									"type": "MSI",
-									"resource": "https://vault.azure.net"
-								}
-							}
-						},
-						{
-							"name": "set empty Body",
-							"type": "SetVariable",
-							"dependsOn": [],
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "emptyBody",
-								"value": "{}"
-							}
-						}
-					],
-					"ifTrueActivities": [
-						{
-							"name": "set token provided",
-							"type": "SetVariable",
-							"dependsOn": [],
-							"userProperties": [],
-							"typeProperties": {
-								"variableName": "token",
-								"value": {
-									"value": "@pipeline().parameters.token",
-									"type": "Expression"
-								}
 							}
 						}
 					]
