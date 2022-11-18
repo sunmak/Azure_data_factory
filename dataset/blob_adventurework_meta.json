@@ -1,0 +1,21 @@
+{
+	"name": "blob_adventurework_meta",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "adflog2",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"container": "adventurework"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"quoteChar": "\""
+		},
+		"schema": []
+	}
+}
