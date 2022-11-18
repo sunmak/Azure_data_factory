@@ -1,0 +1,12 @@
+{
+	"name": "SQL_Information_Schema_Query",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "SQLEXPRESS",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": []
+	}
+}
