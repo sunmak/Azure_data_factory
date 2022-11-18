@@ -24,7 +24,7 @@
 					"sink": {
 						"type": "DelimitedTextSink",
 						"storeSettings": {
-							"type": "AzureBlobFSWriteSettings"
+							"type": "AzureBlobStorageWriteSettings"
 						},
 						"formatSettings": {
 							"type": "DelimitedTextWriteSettings",
@@ -57,7 +57,7 @@
 				],
 				"outputs": [
 					{
-						"referenceName": "adls_sql_information_schema",
+						"referenceName": "blob_adventurework_meta",
 						"type": "DatasetReference"
 					}
 				]
