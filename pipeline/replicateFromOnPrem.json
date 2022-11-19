@@ -75,7 +75,7 @@
 										}
 									}
 								},
-								"enableLogging": true,
+								"enableLogging": false,
 								"storeSettings": {
 									"type": "AzureBlobFSReadSettings",
 									"recursive": true,
@@ -110,6 +110,7 @@
 										"type": "Expression"
 									},
 									"queryTimeout": "02:00:00",
+									"isolationLevel": "Snapshot",
 									"partitionOption": "None"
 								},
 								"sink": {
