@@ -62,23 +62,16 @@
 							"userProperties": [],
 							"typeProperties": {
 								"dataset": {
-									"referenceName": "adls_adventurework",
-									"type": "DatasetReference",
-									"parameters": {
-										"Folder": {
-											"value": "@{item().SOURCESCHEMA}/{item().SOURCETABLE}",
-											"type": "Expression"
-										},
-										"File": {
-											"value": "@{item().SOURCETABLE}",
-											"type": "Expression"
-										}
-									}
+									"referenceName": "adls_adventurework_csv",
+									"type": "DatasetReference"
 								},
 								"enableLogging": false,
 								"storeSettings": {
 									"type": "AzureBlobFSReadSettings",
-									"recursive": true,
+									"fileListPath": {
+										"value": "@{item().SOURCESCHEMA}/@{item().SOURCETABLE}/",
+										"type": "Expression"
+									},
 									"enablePartitionDiscovery": false
 								}
 							}
@@ -116,7 +109,8 @@
 								"sink": {
 									"type": "BinarySink",
 									"storeSettings": {
-										"type": "AzureBlobFSWriteSettings"
+										"type": "AzureBlobFSWriteSettings",
+										"copyBehavior": "FlattenHierarchy"
 									}
 								},
 								"enableStaging": false
@@ -137,7 +131,7 @@
 											"type": "Expression"
 										},
 										"File": {
-											"value": "@{item().SOURCETABLE}",
+											"value": "@formatDateTime(pipeline().TriggerTime, 'yyyy-MM-dd_HH-mm-ss')",
 											"type": "Expression"
 										}
 									}
