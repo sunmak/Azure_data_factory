@@ -107,13 +107,25 @@
 									"partitionOption": "None"
 								},
 								"sink": {
-									"type": "BinarySink",
+									"type": "DelimitedTextSink",
 									"storeSettings": {
-										"type": "AzureBlobFSWriteSettings",
-										"copyBehavior": "FlattenHierarchy"
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
 									}
 								},
-								"enableStaging": false
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
 							},
 							"inputs": [
 								{
@@ -123,15 +135,15 @@
 							],
 							"outputs": [
 								{
-									"referenceName": "adls_adventurework",
+									"referenceName": "adls_adventurework_delimated",
 									"type": "DatasetReference",
 									"parameters": {
 										"Folder": {
-											"value": "@{item().SOURCESCHEMA}/{item().SOURCETABLE}",
+											"value": "@{item().SOURCESCHEMA}/@{item().SOURCETABLE}",
 											"type": "Expression"
 										},
 										"File": {
-											"value": "@formatDateTime(pipeline().TriggerTime, 'yyyy-MM-dd_HH-mm-ss')",
+											"value": "@formatDateTime(pipeline().TriggerTime,'yyyy-MM-dd_HH-mm-ss')",
 											"type": "Expression"
 										}
 									}
