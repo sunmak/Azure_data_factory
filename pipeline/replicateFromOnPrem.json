@@ -1,5 +1,5 @@
 {
-	"name": "pipeline1",
+	"name": "replicateFromOnPrem",
 	"properties": {
 		"activities": [
 			{
@@ -49,7 +49,7 @@
 					"batchCount": 5,
 					"activities": [
 						{
-							"name": "Delete1",
+							"name": "Delete from blob",
 							"type": "Delete",
 							"dependsOn": [],
 							"policy": {
@@ -82,6 +82,66 @@
 									"enablePartitionDiscovery": false
 								}
 							}
+						},
+						{
+							"name": "Copy to blob",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Delete from blob",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlServerSource",
+									"sqlReaderQuery": {
+										"value": "@item().LOADQUERY",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "BinarySink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "SQL_Information_Schema_Query",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "adls_adventurework",
+									"type": "DatasetReference",
+									"parameters": {
+										"Folder": {
+											"value": "@{item().SOURCESCHEMA}/{item().SOURCETABLE}",
+											"type": "Expression"
+										},
+										"File": {
+											"value": "@{item().SOURCETABLE}",
+											"type": "Expression"
+										}
+									}
+								}
+							]
 						}
 					]
 				}
