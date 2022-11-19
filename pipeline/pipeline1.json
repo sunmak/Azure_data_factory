@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Copy data1",
+				"name": "Copy from on prem SQL to Blob",
 				"type": "Copy",
 				"dependsOn": [],
 				"policy": {
@@ -29,17 +29,10 @@
 						"formatSettings": {
 							"type": "DelimitedTextWriteSettings",
 							"quoteAllText": true,
-							"fileExtension": ".txt"
+							"fileExtension": ".csv"
 						}
 					},
-					"enableStaging": true,
-					"stagingSettings": {
-						"linkedServiceName": {
-							"referenceName": "adflog2",
-							"type": "LinkedServiceReference"
-						},
-						"path": "adflogs"
-					},
+					"enableStaging": false,
 					"translator": {
 						"type": "TabularTranslator",
 						"typeConversion": true,
@@ -61,6 +54,39 @@
 						"type": "DatasetReference"
 					}
 				]
+			},
+			{
+				"name": "copy to Snowflake",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Copy from on prem SQL to Blob",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "Snowflake_Meta",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "COPY INTO META.LOAD.T_ADVENTUREWORKSTABLES\nFROM @META.LOAD.S_META_LOAD"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
 			}
 		],
 		"annotations": []
