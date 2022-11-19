@@ -1,0 +1,59 @@
+{
+	"name": "sf_meta_load_t_adventureWorksTables",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Snowflake_Meta",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "SnowflakeTable",
+		"schema": [
+			{
+				"name": "SOURCESSCHEMA",
+				"type": "VARCHAR",
+				"precision": 100,
+				"scale": 0
+			},
+			{
+				"name": "SOURCETABLE",
+				"type": "VARCHAR",
+				"precision": 100,
+				"scale": 0
+			},
+			{
+				"name": "TARGETSYSTEM",
+				"type": "VARCHAR",
+				"precision": 100,
+				"scale": 0
+			},
+			{
+				"name": "TARGETDATABASE",
+				"type": "VARCHAR",
+				"precision": 100,
+				"scale": 0
+			},
+			{
+				"name": "TARGETSCHEMA",
+				"type": "VARCHAR",
+				"precision": 100,
+				"scale": 0
+			},
+			{
+				"name": "TARGETTABLE",
+				"type": "VARCHAR",
+				"precision": 100,
+				"scale": 0
+			},
+			{
+				"name": "LOADQUERY",
+				"type": "VARCHAR",
+				"precision": 232,
+				"scale": 0
+			}
+		],
+		"typeProperties": {
+			"schema": "LOAD",
+			"table": "T_ADVENTUREWORKSTABLES"
+		}
+	}
+}
