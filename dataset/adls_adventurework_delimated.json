@@ -19,7 +19,7 @@
 			"location": {
 				"type": "AzureBlobFSLocation",
 				"fileName": {
-					"value": "@dataset().File",
+					"value": "@{dataset().File}.csv.gz",
 					"type": "Expression"
 				},
 				"folderPath": {
@@ -28,8 +28,9 @@
 				},
 				"fileSystem": "adventurework"
 			},
-			"columnDelimiter": ",",
+			"columnDelimiter": "|",
 			"escapeChar": "\\",
+			"firstRowAsHeader": true,
 			"quoteChar": "\""
 		},
 		"schema": []
