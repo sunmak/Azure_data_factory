@@ -89,6 +89,9 @@
 				}
 			}
 		],
+		"folder": {
+			"name": "get meta from SQL"
+		},
 		"annotations": []
 	}
 }
