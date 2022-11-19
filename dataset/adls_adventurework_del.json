@@ -12,7 +12,7 @@
 				"type": "AzureBlobFSLocation",
 				"fileSystem": "adventurework"
 			},
-			"columnDelimiter": ",",
+			"columnDelimiter": "|",
 			"escapeChar": "\\",
 			"quoteChar": "\""
 		},
