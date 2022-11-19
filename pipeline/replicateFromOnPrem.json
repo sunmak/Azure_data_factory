@@ -137,13 +137,7 @@
 							"typeProperties": {
 								"dataset": {
 									"referenceName": "adls_adventurework_del",
-									"type": "DatasetReference",
-									"parameters": {
-										"Folder": {
-											"value": "@{item().SOURCESCHEMA}/@{item().SOURCETABLE}/",
-											"type": "Expression"
-										}
-									}
+									"type": "DatasetReference"
 								},
 								"enableLogging": false,
 								"storeSettings": {
@@ -151,6 +145,7 @@
 									"recursive": true,
 									"modifiedDatetimeStart": "2022-11-19T00:00:00.663Z",
 									"modifiedDatetimeEnd": "2022-11-19T00:00:00.296Z",
+									"wildcardFileName": "*.txt",
 									"enablePartitionDiscovery": false
 								}
 							}
