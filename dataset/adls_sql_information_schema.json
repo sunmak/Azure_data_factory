@@ -10,6 +10,7 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
+				"fileName": "t_adventureworkstables",
 				"fileSystem": "prod"
 			},
 			"columnDelimiter": "|",
