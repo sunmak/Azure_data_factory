@@ -49,41 +49,13 @@
 					"batchCount": 5,
 					"activities": [
 						{
-							"name": "Delete from blob",
-							"type": "Delete",
-							"dependsOn": [],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"typeProperties": {
-								"dataset": {
-									"referenceName": "adls_adventurework_csv",
-									"type": "DatasetReference"
-								},
-								"enableLogging": false,
-								"storeSettings": {
-									"type": "AzureBlobFSReadSettings",
-									"fileListPath": {
-										"value": "@{item().SOURCESCHEMA}/@{item().SOURCETABLE}/",
-										"type": "Expression"
-									},
-									"enablePartitionDiscovery": false
-								}
-							}
-						},
-						{
 							"name": "Copy to blob",
 							"type": "Copy",
 							"dependsOn": [
 								{
 									"activity": "Delete from blob",
 									"dependencyConditions": [
-										"Succeeded"
+										"Completed"
 									]
 								}
 							],
@@ -149,6 +121,39 @@
 									}
 								}
 							]
+						},
+						{
+							"name": "Delete from blob",
+							"type": "Delete",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "adls_adventurework_del",
+									"type": "DatasetReference",
+									"parameters": {
+										"Folder": {
+											"value": "@{item().SOURCESCHEMA}/@{item().SOURCETABLE}/",
+											"type": "Expression"
+										}
+									}
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"modifiedDatetimeStart": "2022-11-19T00:00:00.663Z",
+									"modifiedDatetimeEnd": "2022-11-19T00:00:00.296Z",
+									"enablePartitionDiscovery": false
+								}
+							}
 						}
 					]
 				}
