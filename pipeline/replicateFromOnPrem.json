@@ -208,8 +208,20 @@
 								"secureInput": false
 							},
 							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "Snowflake_RAW",
+								"type": "LinkedServiceReference"
+							},
 							"typeProperties": {
-								"scripts": [],
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "@concat('copy into ',item().TARGETDATABASE,'.',item().TARGETSCHEMA,'.',item().TARGETTABLE, ' from @', item().TARGETDATABASE, '.', item().TARGETSCHEMA, '.S_RAW_ADVENTUREWORKS/',item().SOURCESCHEMA, '/',item().SOURCETABLE,'/')",
+											"type": "Expression"
+										}
+									}
+								],
 								"scriptBlockExecutionTimeout": "02:00:00"
 							}
 						}
