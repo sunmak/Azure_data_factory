@@ -7,13 +7,25 @@
 			"metadata": "Data Factory name",
 			"defaultValue": "sunfactory"
 		},
+		"SQLEXPRESS_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'SQLEXPRESS'"
+		},
 		"Snowflake_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'Snowflake'"
 		},
+		"Snowflake_Meta_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'Snowflake_Meta'"
+		},
 		"storedir_accountKey": {
 			"type": "secureString",
 			"metadata": "Secure string for 'accountKey' of 'storedir'"
+		},
+		"Snowflake_RAW_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'Snowflake_RAW'"
 		},
 		"adflog2_sasUri": {
 			"type": "secureString",
@@ -22,12 +34,1152 @@
 		"storedir_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://storedir.dfs.core.windows.net/"
+		},
+		"sunkeyvault_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://sunkeyvault2.vault.azure.net/"
 		}
 	},
 	"variables": {
 		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
 	},
 	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/Delete recursively')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "get Tables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SnowflakeSource",
+								"query": "select * from META.LOAD.t_adventureWorksTables;",
+								"exportSettings": {
+									"type": "SnowflakeExportCopyCommand"
+								}
+							},
+							"dataset": {
+								"referenceName": "sf_query",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "For Table",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "get Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('get Tables').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 5,
+							"activities": [
+								{
+									"name": "Delete1",
+									"type": "Delete",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "adls_adventurework_del",
+											"type": "DatasetReference",
+											"parameters": {
+												"Folder": {
+													"value": "@{item().SOURCESCHEMA}/@{item().SOURCETABLE}/",
+													"type": "Expression"
+												}
+											}
+										},
+										"enableLogging": false,
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"wildcardFileName": "*.csv.gz",
+											"enablePartitionDiscovery": false
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/sf_query')]",
+				"[concat(variables('factoryId'), '/datasets/adls_adventurework_del')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/copy t_adventureWorksTables from SQL to snowflake')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy from on prem SQL to Blob",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlServerSource",
+								"sqlReaderQuery": "SELECT\r\n\tTABLE_SCHEMA as Source_Schema, \r\n\tTABLE_NAME as Source_Table, \r\n\t'Snowflake' as Target_System, \r\n\t'RAW' AS Target_Database, \r\n\t'ADVENTUREWORKS' as Target_schema,\r\n\t't_'+ TABLE_NAME as Target_Table,\r\n\t'select * from '+ TABLE_SCHEMA + '.' + TABLE_NAME +';' as Query\r\nFROM AdventureWorks2019.INFORMATION_SCHEMA.TABLES\r\nWHERE TABLE_TYPE = 'BASE TABLE'\r\n;",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": ".csv"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "SQL_Information_Schema_Query",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "adls_sql_information_schema",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "copy to Snowflake",
+						"type": "Script",
+						"dependsOn": [
+							{
+								"activity": "Copy from on prem SQL to Blob",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "Snowflake_Meta",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "Query",
+									"text": "COPY INTO META.LOAD.T_ADVENTUREWORKSTABLES\nFROM @META.LOAD.S_META_LOAD"
+								}
+							],
+							"scriptBlockExecutionTimeout": "02:00:00"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "get meta from SQL"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/SQL_Information_Schema_Query')]",
+				"[concat(variables('factoryId'), '/datasets/adls_sql_information_schema')]",
+				"[concat(variables('factoryId'), '/linkedServices/Snowflake_Meta')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/createTable getFields')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Get fields of a given Salesforce Object and store them in Snowflake META.LOAD.T_SALESFORCE_FIELDS",
+				"activities": [
+					{
+						"name": "get object description",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.00:10:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "https://azilen.lightning.force.com/services/data/v53.0/sobjects/@{pipeline().parameters.object}/describe/",
+								"type": "Expression"
+							},
+							"method": "GET",
+							"headers": {
+								"Authorization": {
+									"value": "Bearer @{variables('token')}",
+									"type": "Expression"
+								}
+							},
+							"authentication": {
+								"type": "Basic",
+								"username": "sunil.makwana-60rc@force.com",
+								"password": {
+									"type": "SecureString",
+									"value": "**********"
+								}
+							}
+						}
+					},
+					{
+						"name": "delete from FIELDS",
+						"type": "Script",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.00:10:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "Snowflake",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "Query",
+									"text": {
+										"value": "DELETE FROM META.LOAD.T_SALESFORCE_FIELDS\nWHERE OBJECT = '@{pipeline().parameters.object}'",
+										"type": "Expression"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "exclude selected fields",
+						"description": "Excluding fields contained in the REST API, but not delivered through BULK API",
+						"type": "Filter",
+						"dependsOn": [
+							{
+								"activity": "get object description",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('get object description').output.fields",
+								"type": "Expression"
+							},
+							"condition": {
+								"value": "@not(equals(item().type, 'address'))",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "for each field",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "exclude selected fields",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('exclude selected fields').output.value",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "append value",
+									"type": "AppendVariable",
+									"dependsOn": [
+										{
+											"activity": "set ordinal_position",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "values",
+										"value": {
+											"value": "('@{pipeline().parameters.object}', '@{replace(item().name, '''', '\\''')}', '@{replace(item().label, '''', '\\''')}', '@{item().type}', @{item().length}, @{item().scale}, @{item().precision}, @{item().custom}, '@{item().externalId}', @{int(variables('ordinal_position'))})",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "set ordinal_position",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "ordinal_position",
+										"value": {
+											"value": "@string(length(variables('values')))",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "insert into FIELDS",
+						"description": "META.LOAD.T_SALESFORCE_FIELDS",
+						"type": "Script",
+						"dependsOn": [
+							{
+								"activity": "delete from FIELDS",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "for each field",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.00:10:00",
+							"retry": 1,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "Snowflake",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "Query",
+									"text": {
+										"value": "INSERT INTO META.LOAD.T_SALESFORCE_FIELDS (OBJECT, NAME, LABEL, TYPE, LENGTH, SCALE, PRECISION, CUSTOM, EXTERNALID, ORDINAL_POSITION)\nVALUES @{join(variables('values'), ', ')}",
+										"type": "Expression"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"object": {
+						"type": "string",
+						"defaultValue": "User"
+					},
+					"token": {
+						"type": "string",
+						"defaultValue": " "
+					}
+				},
+				"variables": {
+					"fieldName": {
+						"type": "String"
+					},
+					"emptyBody": {
+						"type": "String",
+						"defaultValue": "{}"
+					},
+					"values": {
+						"type": "Array"
+					},
+					"ordinal_position": {
+						"type": "String"
+					},
+					"token": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "salesforce/createTable"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Snowflake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/get Metadata from ADLS recursively')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "get Tables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SnowflakeSource",
+								"query": "select * from META.LOAD.t_adventureWorksTables;",
+								"exportSettings": {
+									"type": "SnowflakeExportCopyCommand"
+								}
+							},
+							"dataset": {
+								"referenceName": "sf_query",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "get Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('get Tables').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 5,
+							"activities": [
+								{
+									"name": "Get Metadata1",
+									"type": "GetMetadata",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "adls_adventurework_del",
+											"type": "DatasetReference",
+											"parameters": {
+												"Folder": {
+													"value": "@{item().SOURCESCHEMA}/@{item().SOURCETABLE}",
+													"type": "Expression"
+												}
+											}
+										},
+										"fieldList": [
+											"childItems"
+										],
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										},
+										"formatSettings": {
+											"type": "DelimitedTextReadSettings"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/sf_query')]",
+				"[concat(variables('factoryId'), '/datasets/adls_adventurework_del')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline1')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "get Tables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SnowflakeSource",
+								"query": "select * from META.LOAD.t_adventureWorksTables;",
+								"exportSettings": {
+									"type": "SnowflakeExportCopyCommand"
+								}
+							},
+							"dataset": {
+								"referenceName": "sf_query",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "get Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('get Tables').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 5,
+							"activities": [
+								{
+									"name": "Get Metadata1",
+									"type": "GetMetadata",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "adls_adventurework_del",
+											"type": "DatasetReference",
+											"parameters": {
+												"Folder": {
+													"value": "@{item().SOURCESCHEMA}/@{item().SOURCETABLE}",
+													"type": "Expression"
+												}
+											}
+										},
+										"fieldList": [
+											"childItems"
+										],
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										},
+										"formatSettings": {
+											"type": "DelimitedTextReadSettings"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/sf_query')]",
+				"[concat(variables('factoryId'), '/datasets/adls_adventurework_del')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/replicateFromOnPrem')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "get Tables",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SnowflakeSource",
+								"query": "select * from META.LOAD.t_adventureWorksTables;",
+								"exportSettings": {
+									"type": "SnowflakeExportCopyCommand"
+								}
+							},
+							"dataset": {
+								"referenceName": "sf_query",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "For Table",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "get Tables",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('get Tables').output.value",
+								"type": "Expression"
+							},
+							"batchCount": 5,
+							"activities": [
+								{
+									"name": "Copy to blob",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Delete from ADLS",
+											"dependencyConditions": [
+												"Completed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "SqlServerSource",
+											"sqlReaderQuery": {
+												"value": "@item().LOADQUERY",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"isolationLevel": "Snapshot",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "SQL_Information_Schema_Query",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "adls_adventurework_delimated",
+											"type": "DatasetReference",
+											"parameters": {
+												"Folder": {
+													"value": "@{item().SOURCESCHEMA}/@{item().SOURCETABLE}",
+													"type": "Expression"
+												},
+												"File": {
+													"value": "@concat(item().SOURCETABLE,'_',formatDateTime(pipeline().TriggerTime,'yyyy-MM-dd_HH-mm-ss'))",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "Delete from ADLS",
+									"type": "Delete",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "adls_adventurework_del",
+											"type": "DatasetReference",
+											"parameters": {
+												"Folder": {
+													"value": "@{item().SOURCESCHEMA}/@{item().SOURCETABLE}/",
+													"type": "Expression"
+												}
+											}
+										},
+										"enableLogging": false,
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"wildcardFileName": "*.csv.gz",
+											"enablePartitionDiscovery": false
+										}
+									}
+								},
+								{
+									"name": "Truncate RAW Tables",
+									"type": "Script",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"linkedServiceName": {
+										"referenceName": "Snowflake",
+										"type": "LinkedServiceReference"
+									},
+									"typeProperties": {
+										"scripts": [
+											{
+												"type": "Query",
+												"text": {
+													"value": "truncate table @{item().TARGETDATABASE}.@{item().TARGETSCHEMA}.@{item().TARGETTABLE}",
+													"type": "Expression"
+												}
+											}
+										],
+										"scriptBlockExecutionTimeout": "02:00:00"
+									}
+								},
+								{
+									"name": "Copy to Snowflake",
+									"type": "Script",
+									"dependsOn": [
+										{
+											"activity": "Truncate RAW Tables",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										},
+										{
+											"activity": "Copy to blob",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"linkedServiceName": {
+										"referenceName": "Snowflake_RAW",
+										"type": "LinkedServiceReference"
+									},
+									"typeProperties": {
+										"scripts": [
+											{
+												"type": "Query",
+												"text": {
+													"value": "@concat('copy into ',item().TARGETDATABASE,'.',item().TARGETSCHEMA,'.',item().TARGETTABLE, ' from @', item().TARGETDATABASE, '.', item().TARGETSCHEMA, '.S_RAW_ADVENTUREWORKS/',item().SOURCESCHEMA, '/',item().SOURCETABLE,'/')",
+													"type": "Expression"
+												}
+											}
+										],
+										"scriptBlockExecutionTimeout": "02:00:00"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/sf_query')]",
+				"[concat(variables('factoryId'), '/datasets/SQL_Information_Schema_Query')]",
+				"[concat(variables('factoryId'), '/datasets/adls_adventurework_delimated')]",
+				"[concat(variables('factoryId'), '/datasets/adls_adventurework_del')]",
+				"[concat(variables('factoryId'), '/linkedServices/Snowflake')]",
+				"[concat(variables('factoryId'), '/linkedServices/Snowflake_RAW')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SQL_Information_Schema_Query')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "SQLEXPRESS",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "SqlServerTable",
+				"schema": [],
+				"typeProperties": {}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/SQLEXPRESS')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/adls_adventurework_del')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "storedir",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Folder": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().Folder",
+							"type": "Expression"
+						},
+						"fileSystem": "adventurework"
+					},
+					"columnDelimiter": "|",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/storedir')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/adls_adventurework_delimated')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "storedir",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Folder": {
+						"type": "string"
+					},
+					"File": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@{dataset().File}.csv.gz",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().Folder",
+							"type": "Expression"
+						},
+						"fileSystem": "adventurework"
+					},
+					"columnDelimiter": "|",
+					"compressionCodec": "gzip",
+					"compressionLevel": "Fastest",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"nullValue": "NULL",
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/storedir')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/adls_sql_information_schema')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "storedir",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "t_adventureworkstables",
+						"fileSystem": "prod"
+					},
+					"columnDelimiter": "|",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/storedir')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/blob_adventurework_meta')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "adflog2",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"container": "adventurework"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/adflog2')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/sf_meta_load_t_adventureWorksTables')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Snowflake_Meta",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "SnowflakeTable",
+				"schema": [
+					{
+						"name": "SOURCESSCHEMA",
+						"type": "VARCHAR",
+						"precision": 100,
+						"scale": 0
+					},
+					{
+						"name": "SOURCETABLE",
+						"type": "VARCHAR",
+						"precision": 100,
+						"scale": 0
+					},
+					{
+						"name": "TARGETSYSTEM",
+						"type": "VARCHAR",
+						"precision": 100,
+						"scale": 0
+					},
+					{
+						"name": "TARGETDATABASE",
+						"type": "VARCHAR",
+						"precision": 100,
+						"scale": 0
+					},
+					{
+						"name": "TARGETSCHEMA",
+						"type": "VARCHAR",
+						"precision": 100,
+						"scale": 0
+					},
+					{
+						"name": "TARGETTABLE",
+						"type": "VARCHAR",
+						"precision": 100,
+						"scale": 0
+					},
+					{
+						"name": "LOADQUERY",
+						"type": "VARCHAR",
+						"precision": 232,
+						"scale": 0
+					}
+				],
+				"typeProperties": {
+					"schema": "LOAD",
+					"table": "T_ADVENTUREWORKSTABLES"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Snowflake_Meta')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/sf_query')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Snowflake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "SnowflakeTable",
+				"schema": [],
+				"typeProperties": {}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Snowflake')]"
+			]
+		},
 		{
 			"name": "[concat(parameters('factoryName'), '/storedir_source_employee')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
@@ -82,6 +1234,25 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/SQLEXPRESS')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "SqlServer",
+				"typeProperties": {
+					"connectionString": "[parameters('SQLEXPRESS_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "OnPrem",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/OnPrem')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Snowflake')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -89,10 +1260,46 @@
 				"annotations": [],
 				"type": "Snowflake",
 				"typeProperties": {
-					"connectionString": "[parameters('Snowflake_connectionString')]"
+					"authenticationType": "Basic",
+					"connectionString": "[parameters('Snowflake_connectionString')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "sunkeyvault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "snowflake-password",
+						"secretVersion": "e35e7a985f65448fba7452db902a1562"
+					}
 				}
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/sunkeyvault')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Snowflake_Meta')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "Snowflake",
+				"typeProperties": {
+					"authenticationType": "Basic",
+					"connectionString": "[parameters('Snowflake_Meta_connectionString')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "sunkeyvault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "snowflake-password"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/sunkeyvault')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/adflog2')]",
@@ -123,6 +1330,53 @@
 				}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/sunkeyvault')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureKeyVault",
+				"typeProperties": {
+					"baseUrl": "[parameters('sunkeyvault_properties_typeProperties_baseUrl')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/OnPrem')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "SelfHosted",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Snowflake_RAW')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "Snowflake",
+				"typeProperties": {
+					"authenticationType": "Basic",
+					"connectionString": "[parameters('Snowflake_RAW_connectionString')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "sunkeyvault",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "snowflake-password"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/sunkeyvault')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('factoryName'), '/default')]",

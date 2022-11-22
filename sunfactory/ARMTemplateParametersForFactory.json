@@ -5,10 +5,19 @@
 		"factoryName": {
 			"value": "sunfactory"
 		},
+		"SQLEXPRESS_connectionString": {
+			"value": ""
+		},
 		"Snowflake_connectionString": {
 			"value": ""
 		},
+		"Snowflake_Meta_connectionString": {
+			"value": ""
+		},
 		"storedir_accountKey": {
+			"value": ""
+		},
+		"Snowflake_RAW_connectionString": {
 			"value": ""
 		},
 		"adflog2_sasUri": {
@@ -16,6 +25,9 @@
 		},
 		"storedir_properties_typeProperties_url": {
 			"value": "https://storedir.dfs.core.windows.net/"
+		},
+		"sunkeyvault_properties_typeProperties_baseUrl": {
+			"value": "https://sunkeyvault2.vault.azure.net/"
 		}
 	}
 }

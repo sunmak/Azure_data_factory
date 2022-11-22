@@ -7,13 +7,25 @@
 			"metadata": "Data Factory name",
 			"defaultValue": "sunfactory"
 		},
+		"SQLEXPRESS_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'SQLEXPRESS'"
+		},
 		"Snowflake_connectionString": {
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'Snowflake'"
 		},
+		"Snowflake_Meta_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'Snowflake_Meta'"
+		},
 		"storedir_accountKey": {
 			"type": "secureString",
 			"metadata": "Secure string for 'accountKey' of 'storedir'"
+		},
+		"Snowflake_RAW_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'Snowflake_RAW'"
 		},
 		"adflog2_sasUri": {
 			"type": "secureString",
@@ -22,6 +34,10 @@
 		"storedir_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://storedir.dfs.core.windows.net/"
+		},
+		"sunkeyvault_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://sunkeyvault2.vault.azure.net/"
 		},
 		"containerUri": {
 			"type": "string",
@@ -50,21 +66,53 @@
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
 					},
+					"storedir_accountKey": {
+						"value": "[parameters('storedir_accountKey')]"
+					},
+					"SQLEXPRESS_connectionString": {
+						"value": "[parameters('SQLEXPRESS_connectionString')]"
+					},
 					"Snowflake_connectionString": {
 						"value": "[parameters('Snowflake_connectionString')]"
 					},
-					"storedir_accountKey": {
-						"value": "[parameters('storedir_accountKey')]"
+					"Snowflake_Meta_connectionString": {
+						"value": "[parameters('Snowflake_Meta_connectionString')]"
+					},
+					"Snowflake_RAW_connectionString": {
+						"value": "[parameters('Snowflake_RAW_connectionString')]"
 					},
 					"adflog2_sasUri": {
 						"value": "[parameters('adflog2_sasUri')]"
 					},
 					"storedir_properties_typeProperties_url": {
 						"value": "[parameters('storedir_properties_typeProperties_url')]"
+					},
+					"sunkeyvault_properties_typeProperties_baseUrl": {
+						"value": "[parameters('sunkeyvault_properties_typeProperties_baseUrl')]"
 					}
 				}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "sunfactory_ArmTemplate_1",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2018-02-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_1.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'sunfactory_ArmTemplate_0')]"
+			]
 		}
 	]
 }
