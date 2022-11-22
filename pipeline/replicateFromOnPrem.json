@@ -175,7 +175,7 @@
 									{
 										"type": "Query",
 										"text": {
-											"value": "TRUNCATE TABLE @{item().TARGETDATABASE}.@{item().TARGETSCHEMA}.@{item().TARGETTABLE}",
+											"value": "truncate table @{item().TARGETDATABASE}.@{item().TARGETSCHEMA}.@{item().TARGETTABLE}",
 											"type": "Expression"
 										}
 									}
