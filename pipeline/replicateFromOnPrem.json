@@ -229,6 +229,9 @@
 				}
 			}
 		],
+		"folder": {
+			"name": "ELT Snowflake"
+		},
 		"annotations": []
 	}
 }
