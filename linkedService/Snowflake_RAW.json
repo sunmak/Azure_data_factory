@@ -1,0 +1,19 @@
+{
+	"name": "Snowflake_RAW",
+	"properties": {
+		"annotations": [],
+		"type": "Snowflake",
+		"typeProperties": {
+			"authenticationType": "Basic",
+			"connectionString": "jdbc:snowflake://cdqukaf-bn65719.snowflakecomputing.com/?user=sunilmakwana&db=RAW&warehouse=WH_GENERAL&role=ACCOUNTADMIN",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "sunkeyvault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "snowflake-password"
+			}
+		}
+	}
+}
