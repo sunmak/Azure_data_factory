@@ -310,7 +310,7 @@
 				}
 			},
 			{
-				"name": "upsert from STA to META",
+				"name": "upsert from STA to RAW",
 				"type": "Script",
 				"dependsOn": [
 					{
