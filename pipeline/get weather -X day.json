@@ -302,7 +302,7 @@
 						"referenceName": "SF_raw_query",
 						"type": "DatasetReference",
 						"parameters": {
-							"SnowflakeSchema": "OPENWEATHERMAP",
+							"SnowflakeSchema": "OPENWEATHER",
 							"SnowflakeTable": "T_LOCATION"
 						}
 					},
