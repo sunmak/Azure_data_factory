@@ -1,0 +1,128 @@
+{
+	"name": "SF_sta_openweathermap_byLatLon",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Snowflake_RAW",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Snowflake/sta"
+		},
+		"annotations": [],
+		"type": "SnowflakeTable",
+		"schema": [
+			{
+				"name": "LAT",
+				"type": "NUMBER",
+				"precision": 8,
+				"scale": 6
+			},
+			{
+				"name": "LON",
+				"type": "NUMBER",
+				"precision": 8,
+				"scale": 6
+			},
+			{
+				"name": "DT",
+				"type": "NUMBER",
+				"precision": 38,
+				"scale": 0
+			},
+			{
+				"name": "SUNRISE",
+				"type": "NUMBER",
+				"precision": 38,
+				"scale": 0
+			},
+			{
+				"name": "SUNSET",
+				"type": "NUMBER",
+				"precision": 38,
+				"scale": 0
+			},
+			{
+				"name": "TEMP",
+				"type": "NUMBER",
+				"precision": 34,
+				"scale": 4
+			},
+			{
+				"name": "FEELS_LIKE",
+				"type": "NUMBER",
+				"precision": 34,
+				"scale": 4
+			},
+			{
+				"name": "PRESSURE",
+				"type": "NUMBER",
+				"precision": 34,
+				"scale": 4
+			},
+			{
+				"name": "HUMIDITY",
+				"type": "NUMBER",
+				"precision": 34,
+				"scale": 4
+			},
+			{
+				"name": "DEW_POINT",
+				"type": "NUMBER",
+				"precision": 34,
+				"scale": 4
+			},
+			{
+				"name": "UVI",
+				"type": "NUMBER",
+				"precision": 34,
+				"scale": 4
+			},
+			{
+				"name": "CLOUDS",
+				"type": "NUMBER",
+				"precision": 34,
+				"scale": 4
+			},
+			{
+				"name": "VISIBILITY",
+				"type": "NUMBER",
+				"precision": 34,
+				"scale": 4
+			},
+			{
+				"name": "WIND_SPEED",
+				"type": "NUMBER",
+				"precision": 34,
+				"scale": 4
+			},
+			{
+				"name": "WIND_DEG",
+				"type": "NUMBER",
+				"precision": 34,
+				"scale": 4
+			},
+			{
+				"name": "WEATHER_ID",
+				"type": "NUMBER",
+				"precision": 38,
+				"scale": 0
+			},
+			{
+				"name": "WEATHER_MAIN",
+				"type": "VARCHAR",
+				"precision": 0,
+				"scale": 0
+			},
+			{
+				"name": "WEATHER_DESCRIPTION",
+				"type": "VARCHAR",
+				"precision": 0,
+				"scale": 0
+			}
+		],
+		"typeProperties": {
+			"schema": "OPENWEATHERMAP",
+			"table": "T_BYLATLON"
+		}
+	}
+}

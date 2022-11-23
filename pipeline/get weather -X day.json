@@ -1,0 +1,386 @@
+{
+	"name": "get weather -X day",
+	"properties": {
+		"activities": [
+			{
+				"name": "each location",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "set dt",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "get locations",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "truncate STA",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('get locations').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 10,
+					"activities": [
+						{
+							"name": "copy to STA",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.00:10:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"httpRequestTimeout": "00:02:40",
+									"requestInterval": "00.00:00:00.010",
+									"requestMethod": "GET"
+								},
+								"sink": {
+									"type": "SnowflakeSink",
+									"importSettings": {
+										"type": "SnowflakeImportCopyCommand"
+									}
+								},
+								"enableStaging": true,
+								"stagingSettings": {
+									"linkedServiceName": {
+										"referenceName": "adflog2",
+										"type": "LinkedServiceReference"
+									},
+									"path": "adfstage"
+								},
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"path": "['dt']"
+											},
+											"sink": {
+												"name": "DT",
+												"type": "Int64"
+											}
+										},
+										{
+											"source": {
+												"path": "['temp']"
+											},
+											"sink": {
+												"name": "TEMP",
+												"type": "Int64"
+											}
+										},
+										{
+											"source": {
+												"path": "['feels_like']"
+											},
+											"sink": {
+												"name": "FEELS_LIKE",
+												"type": "Int64"
+											}
+										},
+										{
+											"source": {
+												"path": "['pressure']"
+											},
+											"sink": {
+												"name": "PRESSURE",
+												"type": "Int64"
+											}
+										},
+										{
+											"source": {
+												"path": "['humidity']"
+											},
+											"sink": {
+												"name": "HUMIDITY",
+												"type": "Int64"
+											}
+										},
+										{
+											"source": {
+												"path": "['dew_point']"
+											},
+											"sink": {
+												"name": "DEW_POINT",
+												"type": "Int64"
+											}
+										},
+										{
+											"source": {
+												"path": "['uvi']"
+											},
+											"sink": {
+												"name": "UVI",
+												"type": "Int64"
+											}
+										},
+										{
+											"source": {
+												"path": "['clouds']"
+											},
+											"sink": {
+												"name": "CLOUDS",
+												"type": "Int64"
+											}
+										},
+										{
+											"source": {
+												"path": "['visibility']"
+											},
+											"sink": {
+												"name": "VISIBILITY",
+												"type": "Int64"
+											}
+										},
+										{
+											"source": {
+												"path": "['wind_speed']"
+											},
+											"sink": {
+												"name": "WIND_SPEED",
+												"type": "Int64"
+											}
+										},
+										{
+											"source": {
+												"path": "['wind_deg']"
+											},
+											"sink": {
+												"name": "WIND_DEG",
+												"type": "Int64"
+											}
+										},
+										{
+											"source": {
+												"path": "['weather'][0]['id']"
+											},
+											"sink": {
+												"name": "WEATHER_ID",
+												"type": "Int64"
+											}
+										},
+										{
+											"source": {
+												"path": "['weather'][0]['main']"
+											},
+											"sink": {
+												"name": "WEATHER_MAIN",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['weather'][0]['description']"
+											},
+											"sink": {
+												"name": "WEATHER_DESCRIPTION",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['lat']"
+											},
+											"sink": {
+												"name": "LAT",
+												"type": "Int64"
+											}
+										},
+										{
+											"source": {
+												"path": "$['lon']"
+											},
+											"sink": {
+												"name": "LON",
+												"type": "Int64"
+											}
+										},
+										{
+											"source": {
+												"path": "$['current']['sunrise']"
+											},
+											"sink": {
+												"name": "SUNRISE",
+												"type": "Int64"
+											}
+										},
+										{
+											"source": {
+												"path": "$['current']['sunset']"
+											},
+											"sink": {
+												"name": "SUNSET",
+												"type": "Int64"
+											}
+										}
+									],
+									"collectionReference": "$['hourly']"
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "openWeatherMap_REST",
+									"type": "DatasetReference",
+									"parameters": {
+										"lat": {
+											"value": "@item().LAT",
+											"type": "Expression"
+										},
+										"lon": {
+											"value": "@item().LON",
+											"type": "Expression"
+										},
+										"dt": {
+											"value": "@variables('dt')",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "SF_sta_openweathermap_byLatLon",
+									"type": "DatasetReference"
+								}
+							]
+						}
+					]
+				}
+			},
+			{
+				"name": "set dt",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "dt",
+					"value": {
+						"value": "@string(\n  div(\n    sub(\n      ticks(\n        startOfDay(adddays(convertFromUtc(utcnow(), 'W. Europe Standard Time'), mul(-1, pipeline().parameters.days)))\n      ), \n      ticks('1970-01-01')\n    ),\n    10000000\n  )\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "get locations",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SnowflakeSource",
+						"exportSettings": {
+							"type": "SnowflakeExportCopyCommand"
+						}
+					},
+					"dataset": {
+						"referenceName": "SF_raw_query",
+						"type": "DatasetReference",
+						"parameters": {
+							"SnowflakeSchema": "OPENWEATHERMAP",
+							"SnowflakeTable": "T_LOCATION"
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "upsert from STA to META",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "each location",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.00:59:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "Snowflake_RAW",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "CALL STA.PUBLIC.p_upsertFromStaToMeta_weather_byLatLon();"
+						}
+					]
+				}
+			},
+			{
+				"name": "truncate STA",
+				"type": "Script",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.00:10:00",
+					"retry": 1,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "Snowflake_RAW",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "truncate table STA.OPENWEATHERMAP.T_BYLATLON"
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"days": {
+				"type": "int",
+				"defaultValue": 3
+			}
+		},
+		"variables": {
+			"dt": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "openWeatherMap to Snowflake"
+		},
+		"annotations": []
+	}
+}

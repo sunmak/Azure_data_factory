@@ -1,0 +1,33 @@
+{
+	"name": "SF_raw_query",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Snowflake_RAW",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"SnowflakeSchema": {
+				"type": "string"
+			},
+			"SnowflakeTable": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Snowflake/raw"
+		},
+		"annotations": [],
+		"type": "SnowflakeTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().SnowflakeSchema",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().SnowflakeTable",
+				"type": "Expression"
+			}
+		}
+	}
+}
