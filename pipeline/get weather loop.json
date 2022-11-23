@@ -1,0 +1,70 @@
+{
+	"name": "get weather loop",
+	"properties": {
+		"activities": [
+			{
+				"name": "set days",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "days",
+					"value": {
+						"value": "@range(1,2)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "each day",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "set days",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@variables('days')",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "get weather -X day",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "get weather -X day",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"days": {
+										"value": "@item()",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"variables": {
+			"days": {
+				"type": "Array"
+			}
+		},
+		"folder": {
+			"name": "openWeatherMap to Snowflake"
+		},
+		"annotations": []
+	}
+}
