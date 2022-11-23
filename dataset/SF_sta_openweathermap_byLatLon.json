@@ -2,7 +2,7 @@
 	"name": "SF_sta_openweathermap_byLatLon",
 	"properties": {
 		"linkedServiceName": {
-			"referenceName": "Snowflake_RAW",
+			"referenceName": "Snowflake_STA",
 			"type": "LinkedServiceReference"
 		},
 		"folder": {
@@ -121,7 +121,7 @@
 			}
 		],
 		"typeProperties": {
-			"schema": "OPENWEATHERMAP",
+			"schema": "OPENWEATHER",
 			"table": "T_BYLATLON"
 		}
 	}
