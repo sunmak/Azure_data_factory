@@ -336,7 +336,7 @@
 					"scripts": [
 						{
 							"type": "Query",
-							"text": "CALL STA.PUBLIC.p_upsertFromStaToMeta_weather_byLatLon();"
+							"text": "CALL STA.PUBLIC.P_UPSERTFROMSTATORAW_WEATHER_BYLATLON();"
 						}
 					]
 				}
