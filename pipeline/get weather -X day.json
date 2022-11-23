@@ -65,7 +65,7 @@
 										"referenceName": "adflog2",
 										"type": "LinkedServiceReference"
 									},
-									"path": "adfstage"
+									"path": "adflogs"
 								},
 								"translator": {
 									"type": "TabularTranslator",
