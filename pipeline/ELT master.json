@@ -16,19 +16,6 @@
 				}
 			},
 			{
-				"name": "get Weather data",
-				"type": "ExecutePipeline",
-				"dependsOn": [],
-				"userProperties": [],
-				"typeProperties": {
-					"pipeline": {
-						"referenceName": "get weather loop",
-						"type": "PipelineReference"
-					},
-					"waitOnCompletion": true
-				}
-			},
-			{
 				"name": "no cache",
 				"type": "Script",
 				"dependsOn": [
@@ -39,7 +26,7 @@
 						]
 					},
 					{
-						"activity": "get Weather data",
+						"activity": "warehouse up",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -62,6 +49,32 @@
 						{
 							"type": "Query",
 							"text": "alter session set USE_CACHED_RESULT = FALSE"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "warehouse up",
+				"type": "Script",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "Snowflake_Meta",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "ALTER WAREHOUSE WH_GENERAL SET WAREHOUSE_SIZE = 'MEDIUM'"
 						}
 					],
 					"scriptBlockExecutionTimeout": "02:00:00"
